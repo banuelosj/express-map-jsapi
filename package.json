@@ -1,0 +1,17 @@
+{
+  "name": "express-map",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsc -w",
+    "lint": "tslint './app/*.ts'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/arcgis-js-api": "^4.14.0",
+    "dojo-typings": "^1.11.9"
+  }
+}
