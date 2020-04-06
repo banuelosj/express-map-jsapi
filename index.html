@@ -20,21 +20,38 @@
       rel="stylesheet"
       href="https://js.arcgis.com/4.14/esri/themes/light/main.css"
     />
+    <link rel="stylesheet" href="app/styles/styles.css" />
     <script>
       var locationPath = location.pathname.replace(/\/[^/]*$/, "");
       window.dojoConfig = {
         packages: [
           {
             name: "app",
-            location: locationPath + "/app"
-          }
-        ]
+            location: locationPath + "/app",
+          },
+        ],
       };
     </script>
     <script src="https://js.arcgis.com/4.14"></script>
   </head>
   <body>
     <div id="viewDiv"></div>
+    <div id="topbar">
+      <button
+        class="action-button"
+        id="pointButtonNumber"
+        type="button"
+        title="Draw point with number"
+      >
+        1
+      </button>
+      <button
+        class="action-button esri-icon-trash"
+        id="resetBtn"
+        type="button"
+        title="Clear graphics"
+      ></button>
+    </div>
     <script>
       require(["app/main"]);
     </script>

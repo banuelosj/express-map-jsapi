@@ -5,6 +5,10 @@ import GraphicsLayer from "esri/layers/GraphicsLayer";
 import Graphic from "esri/Graphic";
 import Point from "esri/geometry/Point";
 import TestGraphicsLayer from "./TestGraphicsLayer";
+import { CimSymbol } from "./CimSymbol";
+import Sketch from "esri/widgets/Sketch";
+import SketchViewModel from "esri/widgets/Sketch/SketchViewModel";
+import { CIMSymbol } from "esri/symbols";
 
 interface ResultObject {
   graphic: Graphic;
@@ -15,8 +19,21 @@ interface HitTestResult {
   results: ResultObject[];
 }
 
+interface SketchCreateEvent {
+  graphic: Graphic;
+  state: String;
+  tool: String;
+  toolEventInfo: {};
+  type: "create";
+}
+
+const cimLayer = new GraphicsLayer();
+const graphicsLayer = new GraphicsLayer();
+let numberIndex = 1;
+
 const map = new EsriMap({
   basemap: "gray-vector",
+  layers: [cimLayer, graphicsLayer],
 });
 
 const mapView = new MapView({
@@ -25,11 +42,193 @@ const mapView = new MapView({
   center: [-118, 34],
   zoom: 4,
   highlightOptions: {
-    color: "blue",
+    color: "orange",
+    haloOpacity: 0.8,
+    fillOpacity: 0.2,
   },
 });
 
-const graphicsLayer = TestGraphicsLayer;
+mapView.when(() => {
+  //const cimSymbol = new CimSymbol(1);
+
+  const sketch = new Sketch({
+    layer: graphicsLayer,
+    view: mapView,
+    container: "topbar",
+  });
+
+  mapView.ui.add(sketch, "top-right");
+
+  const sketchViewModel = new SketchViewModel({
+    view: mapView,
+    layer: cimLayer,
+  });
+
+  sketchViewModel.on("create", addGraphic);
+
+  function addGraphic(event: SketchCreateEvent) {
+    if (event.state === "complete") {
+      cimLayer.remove(event.graphic);
+
+      const cimSymbol = new CIMSymbol({
+        data: getPointSymbolData(),
+      });
+
+      const newGraphic = new Graphic({
+        geometry: event.graphic.geometry,
+        symbol: cimSymbol,
+      });
+      cimLayer.add(newGraphic);
+
+      sketchViewModel.create("point");
+    }
+  }
+
+  const drawPointButtonNumber = document.getElementById("pointButtonNumber");
+  sketchViewModel.create("point");
+  //setActiveButton(drawPointButtonNumber);
+  drawPointButtonNumber.onclick = function () {
+    // set the sketch to create a point geometry
+    sketchViewModel.create("point");
+    setActiveButton(this);
+    //pointType = "number";
+  };
+
+  // reset button
+  document.getElementById("resetBtn").onclick = function () {
+    cimLayer.removeAll();
+    setActiveButton(this);
+    numberIndex = 1;
+    //cimSymbol.setIndex(1);
+  };
+
+  function setActiveButton(selectedButton: any) {
+    mapView.focus();
+    const elements = document.getElementsByClassName("active");
+    for (let i = 0; i < elements.length; i++) {
+      elements[i].classList.remove("active");
+    }
+    if (selectedButton) {
+      selectedButton.classList.add("active");
+    }
+  }
+});
+
+function getPointSymbolData() {
+  return {
+    type: "CIMPointSymbol",
+    symbolLayers: [
+      {
+        type: "CIMVectorMarker",
+        enable: true,
+        size: 20,
+        colorLocked: true,
+        anchorPointUnits: "Relative",
+        frame: { xmin: -5, ymin: -5, xmax: 5, ymax: 5 },
+        markerGraphics: [
+          {
+            type: "CIMMarkerGraphic",
+            geometry: { x: 0, y: 0 },
+            symbol: {
+              type: "CIMTextSymbol",
+              fontFamilyName: "Arial",
+              fontStyleName: "Bold",
+              height: 4,
+              horizontalAlignment: "Center",
+              offsetX: 0,
+              offsetY: 5,
+              symbol: {
+                type: "CIMPolygonSymbol",
+                symbolLayers: [
+                  {
+                    type: "CIMSolidFill",
+                    enable: true,
+                    color: [255, 255, 255, 255],
+                  },
+                ],
+              },
+              verticalAlignment: "Center",
+            },
+            textString: String(numberIndex++),
+          },
+        ],
+        scaleSymbolsProportionally: true,
+        respectFrame: true,
+      },
+      {
+        type: "CIMVectorMarker",
+        enable: true,
+        anchorPoint: { x: 0, y: -0.5 },
+        anchorPointUnits: "Relative",
+        size: 20,
+        frame: { xmin: 0.0, ymin: 0.0, xmax: 17.0, ymax: 17.0 },
+        markerGraphics: [
+          {
+            type: "CIMMarkerGraphic",
+            geometry: {
+              rings: [
+                [
+                  [8.5, 0.2],
+                  [7.06, 0.33],
+                  [5.66, 0.7],
+                  [4.35, 1.31],
+                  [3.16, 2.14],
+                  [2.14, 3.16],
+                  [1.31, 4.35],
+                  [0.7, 5.66],
+                  [0.33, 7.06],
+                  [0.2, 8.5],
+                  [0.33, 9.94],
+                  [0.7, 11.34],
+                  [1.31, 12.65],
+                  [2.14, 13.84],
+                  [3.16, 14.86],
+                  [4.35, 15.69],
+                  [5.66, 16.3],
+                  [7.06, 16.67],
+                  [8.5, 16.8],
+                  [9.94, 16.67],
+                  [11.34, 16.3],
+                  [12.65, 15.69],
+                  [13.84, 14.86],
+                  [14.86, 13.84],
+                  [15.69, 12.65],
+                  [16.3, 11.34],
+                  [16.67, 9.94],
+                  [16.8, 8.5],
+                  [16.67, 7.06],
+                  [16.3, 5.66],
+                  [15.69, 4.35],
+                  [14.86, 3.16],
+                  [13.84, 2.14],
+                  [12.65, 1.31],
+                  [11.34, 0.7],
+                  [9.94, 0.33],
+                  [8.5, 0.2],
+                ],
+              ],
+            },
+            symbol: {
+              type: "CIMPolygonSymbol",
+              symbolLayers: [
+                {
+                  type: "CIMSolidFill",
+                  enable: true,
+                  color: [39, 129, 153, 255],
+                },
+              ],
+            },
+          },
+        ],
+        scaleSymbolsProportionally: true,
+        respectFrame: true,
+      },
+    ],
+  };
+}
+
+// code below is used for the hitTest with a graphics layer
+//const graphicsLayer = TestGraphicsLayer;
 
 // loading client side graphics from a graphics layer
 // feature layer also works here (clientLayer: GraphicsLayer || FeatureLayer)
@@ -73,4 +272,4 @@ const loadClientLayer = (view: MapView, clientLayer: GraphicsLayer): void => {
     });
 };
 
-loadClientLayer(mapView, graphicsLayer);
+loadClientLayer(mapView, cimLayer);
