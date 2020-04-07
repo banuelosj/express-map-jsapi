@@ -9,6 +9,8 @@ import { CimSymbol } from "./CimSymbol";
 import Sketch from "esri/widgets/Sketch";
 import SketchViewModel from "esri/widgets/Sketch/SketchViewModel";
 import { CIMSymbol } from "esri/symbols";
+import { Geometry } from "esri/geometry";
+import SimpleMarkerSymbol from "esri/symbols/SimpleMarkerSymbol";
 
 interface ResultObject {
   graphic: Graphic;
@@ -27,9 +29,20 @@ interface SketchCreateEvent {
   type: "create";
 }
 
+enum CurrentSelectedBtn {
+  CircleBtn = "pointButtonNumber",
+  PinBtn = "pinBtn",
+  TrashBtn = "resetBtn",
+}
+
+const drawPointButtonNumber = document.getElementById("pointButtonNumber");
+const drawPinBtn = document.getElementById("pinBtn");
+const resetBtn = document.getElementById("resetBtn");
+
 const cimLayer = new GraphicsLayer();
 const graphicsLayer = new GraphicsLayer();
 let numberIndex = 1;
+let selectedBtn: any = null;
 
 const map = new EsriMap({
   basemap: "gray-vector",
@@ -68,35 +81,48 @@ mapView.when(() => {
 
   function addGraphic(event: SketchCreateEvent) {
     if (event.state === "complete") {
-      cimLayer.remove(event.graphic);
+      if (selectedBtn.id === CurrentSelectedBtn.PinBtn) {
+        cimLayer.remove(event.graphic);
+        addPinBtn(sketchViewModel, event.graphic);
+      } else {
+        // add the CIM Symbol
+        cimLayer.remove(event.graphic);
 
-      const cimSymbol = new CIMSymbol({
-        data: getPointSymbolData(),
-      });
+        const cimSymbol = new CIMSymbol({
+          data: getPointSymbolData(),
+        });
 
-      const newGraphic = new Graphic({
-        geometry: event.graphic.geometry,
-        symbol: cimSymbol,
-      });
-      cimLayer.add(newGraphic);
+        const newGraphic = new Graphic({
+          geometry: event.graphic.geometry,
+          symbol: cimSymbol,
+        });
+        cimLayer.add(newGraphic);
 
-      sketchViewModel.create("point");
+        sketchViewModel.create("point");
+      }
     }
   }
 
-  const drawPointButtonNumber = document.getElementById("pointButtonNumber");
-  sketchViewModel.create("point");
+  //sketchViewModel.create("point");
   //setActiveButton(drawPointButtonNumber);
   drawPointButtonNumber.onclick = function () {
     // set the sketch to create a point geometry
+    selectedBtn = this;
     sketchViewModel.create("point");
     setActiveButton(this);
     //pointType = "number";
   };
 
+  drawPinBtn.onclick = function () {
+    selectedBtn = this;
+    sketchViewModel.create("point");
+    setActiveButton(this);
+  };
+
   // reset button
-  document.getElementById("resetBtn").onclick = function () {
+  resetBtn.onclick = function () {
     cimLayer.removeAll();
+    selectedBtn = this;
     setActiveButton(this);
     numberIndex = 1;
     //cimSymbol.setIndex(1);
@@ -113,6 +139,23 @@ mapView.when(() => {
     }
   }
 });
+
+function addPinBtn(model: SketchViewModel, graphic: Graphic): void {
+  const pinSymbol = new SimpleMarkerSymbol({
+    color: "#0079C1",
+    size: "20px",
+    path:
+      "M15.999 0C11.214 0 8 1.805 8 6.5v17l7.999 8.5L24 23.5v-17C24 1.805 20.786 0 15.999 0zM16 14.402A4.4 4.4 0 0 1 11.601 10a4.4 4.4 0 1 1 8.798 0A4.4 4.4 0 0 1 16 14.402z",
+  });
+
+  const pinGraphic = new Graphic({
+    geometry: graphic.geometry,
+    symbol: pinSymbol,
+  });
+  cimLayer.add(pinGraphic);
+
+  model.create("point");
+}
 
 function getPointSymbolData() {
   return {
