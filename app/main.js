@@ -1,32 +1,34 @@
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/GraphicsLayer", "esri/Graphic", "esri/widgets/Sketch", "esri/widgets/Sketch/SketchViewModel", "esri/symbols", "esri/symbols/SimpleMarkerSymbol"], function (require, exports, Map_1, MapView_1, GraphicsLayer_1, Graphic_1, Sketch_1, SketchViewModel_1, symbols_1, SimpleMarkerSymbol_1) {
+define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/GraphicsLayer", "esri/Graphic", "esri/widgets/Sketch/SketchViewModel", "esri/symbols", "esri/symbols/SimpleMarkerSymbol"], function (require, exports, Map_1, MapView_1, GraphicsLayer_1, Graphic_1, SketchViewModel_1, symbols_1, SimpleMarkerSymbol_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     Map_1 = __importDefault(Map_1);
     MapView_1 = __importDefault(MapView_1);
     GraphicsLayer_1 = __importDefault(GraphicsLayer_1);
     Graphic_1 = __importDefault(Graphic_1);
-    Sketch_1 = __importDefault(Sketch_1);
     SketchViewModel_1 = __importDefault(SketchViewModel_1);
     SimpleMarkerSymbol_1 = __importDefault(SimpleMarkerSymbol_1);
     var CurrentSelectedBtn;
     (function (CurrentSelectedBtn) {
-        CurrentSelectedBtn["CircleBtn"] = "pointButtonNumber";
+        CurrentSelectedBtn["CirclePointBtn"] = "pointButtonNumber";
         CurrentSelectedBtn["PinBtn"] = "pinBtn";
         CurrentSelectedBtn["TrashBtn"] = "resetBtn";
+        CurrentSelectedBtn["PolylineBtn"] = "polylineBtn";
+        CurrentSelectedBtn["PolygonBtn"] = "polygonBtn";
     })(CurrentSelectedBtn || (CurrentSelectedBtn = {}));
     var drawPointButtonNumber = document.getElementById("pointButtonNumber");
     var drawPinBtn = document.getElementById("pinBtn");
+    var drawPolylineBtn = document.getElementById("polylineBtn");
+    var drawPolygonBtn = document.getElementById("polygonBtn");
     var resetBtn = document.getElementById("resetBtn");
-    var cimLayer = new GraphicsLayer_1.default();
     var graphicsLayer = new GraphicsLayer_1.default();
     var numberIndex = 1;
     var selectedBtn = null;
     var map = new Map_1.default({
         basemap: "gray-vector",
-        layers: [cimLayer, graphicsLayer],
+        layers: [graphicsLayer],
     });
     var mapView = new MapView_1.default({
         map: map,
@@ -41,26 +43,31 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
     });
     mapView.when(function () {
         //const cimSymbol = new CimSymbol(1);
-        var sketch = new Sketch_1.default({
-            layer: graphicsLayer,
-            view: mapView,
-            container: "topbar",
-        });
-        mapView.ui.add(sketch, "top-right");
+        // const sketch = new Sketch({
+        //   layer: graphicsLayer,
+        //   view: mapView,
+        //   container: "topbar",
+        //   availableCreateTools: ["rectangle", "circle"],
+        // });
+        // mapView.ui.add(sketch, "top-right");
         var sketchViewModel = new SketchViewModel_1.default({
             view: mapView,
-            layer: cimLayer,
+            layer: graphicsLayer,
+        });
+        sketchViewModel.on("update", function () {
+            console.log("updating....");
+            resetBtn.style.visibility = "visible";
         });
         sketchViewModel.on("create", addGraphic);
         function addGraphic(event) {
             if (event.state === "complete") {
                 if (selectedBtn.id === CurrentSelectedBtn.PinBtn) {
-                    cimLayer.remove(event.graphic);
+                    graphicsLayer.remove(event.graphic);
                     addPinBtn(sketchViewModel, event.graphic);
                 }
-                else {
+                else if (selectedBtn.id === CurrentSelectedBtn.CirclePointBtn) {
                     // add the CIM Symbol
-                    cimLayer.remove(event.graphic);
+                    graphicsLayer.remove(event.graphic);
                     var cimSymbol = new symbols_1.CIMSymbol({
                         data: getPointSymbolData(),
                     });
@@ -68,8 +75,8 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
                         geometry: event.graphic.geometry,
                         symbol: cimSymbol,
                     });
-                    cimLayer.add(newGraphic);
-                    sketchViewModel.create("point");
+                    graphicsLayer.add(newGraphic);
+                    //sketchViewModel.create("point");
                 }
             }
         }
@@ -79,19 +86,29 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
             // set the sketch to create a point geometry
             selectedBtn = this;
             sketchViewModel.create("point");
-            setActiveButton(this);
+            //setActiveButton(this);
             //pointType = "number";
         };
         drawPinBtn.onclick = function () {
             selectedBtn = this;
             sketchViewModel.create("point");
-            setActiveButton(this);
+            //setActiveButton(this);
+        };
+        drawPolylineBtn.onclick = function () {
+            selectedBtn = this;
+            sketchViewModel.create("polyline");
+            //setActiveButton(this);
+        };
+        drawPolygonBtn.onclick = function () {
+            selectedBtn = this;
+            sketchViewModel.create("polygon");
+            // setActiveButton(this);
         };
         // reset button
         resetBtn.onclick = function () {
-            cimLayer.removeAll();
+            graphicsLayer.removeAll();
             selectedBtn = this;
-            setActiveButton(this);
+            //setActiveButton(this);
             numberIndex = 1;
             //cimSymbol.setIndex(1);
         };
@@ -116,8 +133,8 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
             geometry: graphic.geometry,
             symbol: pinSymbol,
         });
-        cimLayer.add(pinGraphic);
-        model.create("point");
+        graphicsLayer.add(pinGraphic);
+        //model.create("point");
     }
     function getPointSymbolData() {
         return {
@@ -269,6 +286,6 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
             }
         });
     };
-    loadClientLayer(mapView, cimLayer);
+    loadClientLayer(mapView, graphicsLayer);
 });
 //# sourceMappingURL=main.js.map

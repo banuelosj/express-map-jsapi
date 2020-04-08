@@ -30,23 +30,26 @@ interface SketchCreateEvent {
 }
 
 enum CurrentSelectedBtn {
-  CircleBtn = "pointButtonNumber",
+  CirclePointBtn = "pointButtonNumber",
   PinBtn = "pinBtn",
   TrashBtn = "resetBtn",
+  PolylineBtn = "polylineBtn",
+  PolygonBtn = "polygonBtn",
 }
 
 const drawPointButtonNumber = document.getElementById("pointButtonNumber");
 const drawPinBtn = document.getElementById("pinBtn");
+const drawPolylineBtn = document.getElementById("polylineBtn");
+const drawPolygonBtn = document.getElementById("polygonBtn");
 const resetBtn = document.getElementById("resetBtn");
 
-const cimLayer = new GraphicsLayer();
 const graphicsLayer = new GraphicsLayer();
 let numberIndex = 1;
 let selectedBtn: any = null;
 
 const map = new EsriMap({
   basemap: "gray-vector",
-  layers: [cimLayer, graphicsLayer],
+  layers: [graphicsLayer],
 });
 
 const mapView = new MapView({
@@ -64,17 +67,23 @@ const mapView = new MapView({
 mapView.when(() => {
   //const cimSymbol = new CimSymbol(1);
 
-  const sketch = new Sketch({
-    layer: graphicsLayer,
-    view: mapView,
-    container: "topbar",
-  });
+  // const sketch = new Sketch({
+  //   layer: graphicsLayer,
+  //   view: mapView,
+  //   container: "topbar",
+  //   availableCreateTools: ["rectangle", "circle"],
+  // });
 
-  mapView.ui.add(sketch, "top-right");
+  // mapView.ui.add(sketch, "top-right");
 
   const sketchViewModel = new SketchViewModel({
     view: mapView,
-    layer: cimLayer,
+    layer: graphicsLayer,
+  });
+
+  sketchViewModel.on("update", function () {
+    console.log("updating....");
+    resetBtn.style.visibility = "visible";
   });
 
   sketchViewModel.on("create", addGraphic);
@@ -82,11 +91,11 @@ mapView.when(() => {
   function addGraphic(event: SketchCreateEvent) {
     if (event.state === "complete") {
       if (selectedBtn.id === CurrentSelectedBtn.PinBtn) {
-        cimLayer.remove(event.graphic);
+        graphicsLayer.remove(event.graphic);
         addPinBtn(sketchViewModel, event.graphic);
-      } else {
+      } else if (selectedBtn.id === CurrentSelectedBtn.CirclePointBtn) {
         // add the CIM Symbol
-        cimLayer.remove(event.graphic);
+        graphicsLayer.remove(event.graphic);
 
         const cimSymbol = new CIMSymbol({
           data: getPointSymbolData(),
@@ -96,9 +105,9 @@ mapView.when(() => {
           geometry: event.graphic.geometry,
           symbol: cimSymbol,
         });
-        cimLayer.add(newGraphic);
+        graphicsLayer.add(newGraphic);
 
-        sketchViewModel.create("point");
+        //sketchViewModel.create("point");
       }
     }
   }
@@ -109,21 +118,33 @@ mapView.when(() => {
     // set the sketch to create a point geometry
     selectedBtn = this;
     sketchViewModel.create("point");
-    setActiveButton(this);
+    //setActiveButton(this);
     //pointType = "number";
   };
 
   drawPinBtn.onclick = function () {
     selectedBtn = this;
     sketchViewModel.create("point");
-    setActiveButton(this);
+    //setActiveButton(this);
+  };
+
+  drawPolylineBtn.onclick = function () {
+    selectedBtn = this;
+    sketchViewModel.create("polyline");
+    //setActiveButton(this);
+  };
+
+  drawPolygonBtn.onclick = function () {
+    selectedBtn = this;
+    sketchViewModel.create("polygon");
+    // setActiveButton(this);
   };
 
   // reset button
   resetBtn.onclick = function () {
-    cimLayer.removeAll();
+    graphicsLayer.removeAll();
     selectedBtn = this;
-    setActiveButton(this);
+    //setActiveButton(this);
     numberIndex = 1;
     //cimSymbol.setIndex(1);
   };
@@ -152,9 +173,9 @@ function addPinBtn(model: SketchViewModel, graphic: Graphic): void {
     geometry: graphic.geometry,
     symbol: pinSymbol,
   });
-  cimLayer.add(pinGraphic);
+  graphicsLayer.add(pinGraphic);
 
-  model.create("point");
+  //model.create("point");
 }
 
 function getPointSymbolData() {
@@ -315,4 +336,4 @@ const loadClientLayer = (view: MapView, clientLayer: GraphicsLayer): void => {
     });
 };
 
-loadClientLayer(mapView, cimLayer);
+loadClientLayer(mapView, graphicsLayer);
