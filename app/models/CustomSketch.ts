@@ -1,29 +1,80 @@
-// custom CIMSymbol class to always use the blue circle icon with
-// a number count
-import CIMSymbol from "esri/symbols/CIMSymbol";
+import Graphic from "esri/Graphic";
+import GraphicsLayer from "esri/layers/GraphicsLayer";
+import { CIMSymbol } from "esri/symbols";
+import SimpleMarkerSymbol from "esri/symbols/SimpleMarkerSymbol";
 
-export class CimSymbol extends CIMSymbol {
-  // numberIndex is number to start with for symbol numbers
-  constructor(public numberIndex: number, public data: any) {
-    super();
+export interface SketchCreateEvent {
+  graphic: Graphic;
+  state: String;
+  tool: String;
+  toolEventInfo: {};
+  type: "create";
+}
+
+export enum CurrentSelectedBtn {
+  CirclePointBtn = "pointButtonNumber",
+  PinBtn = "pinBtn",
+  TrashBtn = "resetBtn",
+  PolylineBtn = "polylineBtn",
+  PolygonBtn = "polygonBtn",
+}
+
+export class CustomSketch {
+  constructor(public graphicsLayer: GraphicsLayer) {}
+
+  addGraphic(
+    event: SketchCreateEvent,
+    selectedBtnId: string,
+    index?: number
+  ): void {
+    if (event.state === "complete") {
+      if (selectedBtnId === CurrentSelectedBtn.PinBtn) {
+        this.graphicsLayer.remove(event.graphic);
+        this.addPinBtn(event.graphic);
+      } else if (selectedBtnId === CurrentSelectedBtn.CirclePointBtn) {
+        // add the CIM Symbol
+        this.graphicsLayer.remove(event.graphic);
+
+        const cimSymbol = new CIMSymbol({
+          data: this.getPointSymbolData(index),
+        });
+
+        const newGraphic = new Graphic({
+          geometry: event.graphic.geometry,
+          symbol: cimSymbol,
+        });
+        this.graphicsLayer.add(newGraphic);
+
+        //sketchViewModel.create("point");
+      }
+    }
   }
 
-  getIndex = (): number => {
-    return this.numberIndex;
-  };
+  addPinBtn(graphic: Graphic): void {
+    const pinSymbol = new SimpleMarkerSymbol({
+      color: "#0079C1",
+      size: "20px",
+      path:
+        "M15.999 0C11.214 0 8 1.805 8 6.5v17l7.999 8.5L24 23.5v-17C24 1.805 20.786 0 15.999 0zM16 14.402A4.4 4.4 0 0 1 11.601 10a4.4 4.4 0 1 1 8.798 0A4.4 4.4 0 0 1 16 14.402z",
+    });
 
-  setIndex = (index: number): void => {
-    this.numberIndex = index;
-  };
+    const pinGraphic = new Graphic({
+      geometry: graphic.geometry,
+      symbol: pinSymbol,
+    });
+    this.graphicsLayer.add(pinGraphic);
 
-  getData = (): {} => {
+    //model.create("point");
+  }
+
+  getPointSymbolData(index: number): {} {
     return {
       type: "CIMPointSymbol",
       symbolLayers: [
         {
           type: "CIMVectorMarker",
           enable: true,
-          size: 25,
+          size: 20,
           colorLocked: true,
           anchorPointUnits: "Relative",
           frame: { xmin: -5, ymin: -5, xmax: 5, ymax: 5 },
@@ -51,7 +102,7 @@ export class CimSymbol extends CIMSymbol {
                 },
                 verticalAlignment: "Center",
               },
-              textString: String(this.numberIndex++),
+              textString: String(index++),
             },
           ],
           scaleSymbolsProportionally: true,
@@ -62,7 +113,7 @@ export class CimSymbol extends CIMSymbol {
           enable: true,
           anchorPoint: { x: 0, y: -0.5 },
           anchorPointUnits: "Relative",
-          size: 25,
+          size: 20,
           frame: { xmin: 0.0, ymin: 0.0, xmax: 17.0, ymax: 17.0 },
           markerGraphics: [
             {
@@ -127,5 +178,5 @@ export class CimSymbol extends CIMSymbol {
         },
       ],
     };
-  };
+  }
 }
