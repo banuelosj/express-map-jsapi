@@ -12,10 +12,12 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
     var drawPinBtn = document.getElementById("pinBtn");
     var drawPolylineBtn = document.getElementById("polylineBtn");
     var drawPolygonBtn = document.getElementById("polygonBtn");
-    var resetBtn = document.getElementById("resetBtn");
+    var deleteBtn = document.getElementById("deleteBtn");
     var graphicsLayer = new GraphicsLayer_1.default();
     var numberIndex = 1;
     var selectedBtn;
+    var selectedGraphic = null;
+    var isGraphicClick = false;
     var map = new Map_1.default({
         basemap: "gray-vector",
         layers: [graphicsLayer],
@@ -32,7 +34,6 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
         },
     });
     mapView.when(function () {
-        //const cimSymbol = new CimSymbol(1);
         // const sketch = new Sketch({
         //   layer: graphicsLayer,
         //   view: mapView,
@@ -47,7 +48,8 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
         var customSketch = new CustomSketch_1.CustomSketch(graphicsLayer);
         sketchViewModel.on("update", function (evt) {
             console.log("updating....");
-            resetBtn.style.visibility = "visible";
+            // console.log("event: ", evt);
+            // selectedGraphics = evt.graphics;
         });
         sketchViewModel.on("create", function (evt) {
             if (selectedBtn instanceof HTMLElement) {
@@ -55,6 +57,10 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
                 if (selectedBtn.id === CustomSketch_1.CurrentSelectedBtn.CirclePointBtn) {
                     console.log("incrementing index...");
                     numberIndex++;
+                    // setting the circle text button to the next number
+                    // helps user know what the next number is without having
+                    // to look for the largest number
+                    drawPointButtonNumber.innerHTML = numberIndex.toString();
                 }
             }
         });
@@ -64,32 +70,46 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
             // set the sketch to create a point geometry
             selectedBtn = this;
             sketchViewModel.create("point");
-            //setActiveButton(this);
+            setActiveButton(this);
             //pointType = "number";
         };
         drawPinBtn.onclick = function () {
             selectedBtn = this;
             sketchViewModel.create("point");
-            //setActiveButton(this);
+            setActiveButton(this);
         };
         drawPolylineBtn.onclick = function () {
             selectedBtn = this;
             sketchViewModel.create("polyline");
-            //setActiveButton(this);
+            setActiveButton(this);
         };
         drawPolygonBtn.onclick = function () {
             selectedBtn = this;
             sketchViewModel.create("polygon");
-            // setActiveButton(this);
+            setActiveButton(this);
         };
         // reset button
-        resetBtn.onclick = function () {
-            graphicsLayer.removeAll();
-            selectedBtn = this;
+        deleteBtn.onclick = function () {
+            // just want to remove the currently selected graphics
+            if (selectedGraphic !== null) {
+                // TODO: this code works if the ability to delete multiple
+                // graphics is added
+                graphicsLayer.removeMany([selectedGraphic]);
+            }
+            deleteBtn.style.visibility = "hidden";
+            console.log(selectedGraphic);
+            if (selectedGraphic.symbol.type === "cim") {
+                numberIndex = getCimNumber(selectedGraphic);
+            }
+            //selectedBtn = this;
             //setActiveButton(this);
-            numberIndex = 1;
+            //numberIndex = numbersIndex - 1;
             //cimSymbol.setIndex(1);
         };
+        // TODO: work on removing the any type here to use CIMSymbol
+        function getCimNumber(graphic) {
+            return parseInt(graphic.symbol.data.symbolLayers[0].markerGraphics[0].symbol.textString);
+        }
         function setActiveButton(selectedButton) {
             mapView.focus();
             var elements = document.getElementsByClassName("active");
@@ -117,6 +137,7 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
             view.on("pointer-down", eventHandler);
             function eventHandler(event) {
                 // using the hitTest() of the MapView to identify graphics on the screen
+                isGraphicClick = event.type === "pointer-down" ? true : false;
                 view.hitTest(event).then(getGraphics);
             }
             //let highlight = layerView.highlight();
@@ -133,6 +154,11 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
                         return result.graphic.layer === clientLayer;
                     })[0].graphic;
                     highlight = layerView.highlight(graphic);
+                    // display the trash can to delete the currently selected graphic
+                    if (isGraphicClick) {
+                        deleteBtn.style.visibility = "visible";
+                        selectedGraphic = graphic;
+                    }
                 }
             }
         });

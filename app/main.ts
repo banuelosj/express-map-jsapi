@@ -11,6 +11,7 @@ import {
   SketchCreateEvent,
   CurrentSelectedBtn,
 } from "./models/CustomSketch";
+import { CIMSymbol } from "esri/symbols";
 
 interface ResultObject {
   graphic: Graphic;
@@ -25,11 +26,13 @@ const drawPointButtonNumber = document.getElementById("pointButtonNumber");
 const drawPinBtn = document.getElementById("pinBtn");
 const drawPolylineBtn = document.getElementById("polylineBtn");
 const drawPolygonBtn = document.getElementById("polygonBtn");
-const resetBtn = document.getElementById("resetBtn");
+const deleteBtn = document.getElementById("deleteBtn");
 
 const graphicsLayer = new GraphicsLayer();
 let numberIndex = 1;
 let selectedBtn: HTMLElement | GlobalEventHandlers;
+let selectedGraphic: Graphic = null;
+let isGraphicClick = false;
 
 const map = new EsriMap({
   basemap: "gray-vector",
@@ -49,8 +52,6 @@ const mapView = new MapView({
 });
 
 mapView.when(() => {
-  //const cimSymbol = new CimSymbol(1);
-
   // const sketch = new Sketch({
   //   layer: graphicsLayer,
   //   view: mapView,
@@ -69,7 +70,8 @@ mapView.when(() => {
 
   sketchViewModel.on("update", function (evt) {
     console.log("updating....");
-    resetBtn.style.visibility = "visible";
+    // console.log("event: ", evt);
+    // selectedGraphics = evt.graphics;
   });
 
   sketchViewModel.on("create", function (evt) {
@@ -78,6 +80,11 @@ mapView.when(() => {
       if (selectedBtn.id === CurrentSelectedBtn.CirclePointBtn) {
         console.log("incrementing index...");
         numberIndex++;
+
+        // setting the circle text button to the next number
+        // helps user know what the next number is without having
+        // to look for the largest number
+        drawPointButtonNumber.innerHTML = numberIndex.toString();
       }
     }
   });
@@ -88,36 +95,54 @@ mapView.when(() => {
     // set the sketch to create a point geometry
     selectedBtn = this;
     sketchViewModel.create("point");
-    //setActiveButton(this);
+    setActiveButton(this);
     //pointType = "number";
   };
 
   drawPinBtn.onclick = function () {
     selectedBtn = this;
     sketchViewModel.create("point");
-    //setActiveButton(this);
+    setActiveButton(this);
   };
 
   drawPolylineBtn.onclick = function () {
     selectedBtn = this;
     sketchViewModel.create("polyline");
-    //setActiveButton(this);
+    setActiveButton(this);
   };
 
   drawPolygonBtn.onclick = function () {
     selectedBtn = this;
     sketchViewModel.create("polygon");
-    // setActiveButton(this);
+    setActiveButton(this);
   };
 
   // reset button
-  resetBtn.onclick = function () {
-    graphicsLayer.removeAll();
-    selectedBtn = this;
+  deleteBtn.onclick = function () {
+    // just want to remove the currently selected graphics
+    if (selectedGraphic !== null) {
+      // TODO: this code works if the ability to delete multiple
+      // graphics is added
+      graphicsLayer.removeMany([selectedGraphic]);
+    }
+    deleteBtn.style.visibility = "hidden";
+    console.log(selectedGraphic);
+    if (selectedGraphic.symbol.type === "cim") {
+      numberIndex = getCimNumber(selectedGraphic);
+    }
+
+    //selectedBtn = this;
     //setActiveButton(this);
-    numberIndex = 1;
+    //numberIndex = numbersIndex - 1;
     //cimSymbol.setIndex(1);
   };
+
+  // TODO: work on removing the any type here to use CIMSymbol
+  function getCimNumber(graphic: any): number {
+    return parseInt(
+      graphic.symbol.data.symbolLayers[0].markerGraphics[0].symbol.textString
+    );
+  }
 
   function setActiveButton(selectedButton: any) {
     mapView.focus();
@@ -148,6 +173,7 @@ const loadClientLayer = (view: MapView, clientLayer: GraphicsLayer): void => {
 
       function eventHandler(event: MouseEvent): void {
         // using the hitTest() of the MapView to identify graphics on the screen
+        isGraphicClick = event.type === "pointer-down" ? true : false;
         view.hitTest(event).then(getGraphics);
       }
 
@@ -168,6 +194,12 @@ const loadClientLayer = (view: MapView, clientLayer: GraphicsLayer): void => {
           })[0].graphic;
 
           highlight = layerView.highlight(graphic);
+
+          // display the trash can to delete the currently selected graphic
+          if (isGraphicClick) {
+            deleteBtn.style.visibility = "visible";
+            selectedGraphic = graphic;
+          }
         }
       }
     });
