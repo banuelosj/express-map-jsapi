@@ -27,12 +27,19 @@ const drawPinBtn = document.getElementById("pinBtn");
 const drawPolylineBtn = document.getElementById("polylineBtn");
 const drawPolygonBtn = document.getElementById("polygonBtn");
 const deleteBtn = document.getElementById("deleteBtn");
+// HTMLInputElement allows us to use the disabled property
+const undoBtn = <HTMLInputElement>document.getElementById("undoBtn");
+undoBtn.disabled = true;
+const redoBtn = <HTMLInputElement>document.getElementById("redoBtn");
+redoBtn.disabled = true;
 
 const graphicsLayer = new GraphicsLayer();
 let numberIndex = 1;
 let selectedBtn: HTMLElement | GlobalEventHandlers;
 let selectedGraphic: Graphic = null;
 let isGraphicClick = false;
+
+let sketchViewModel: SketchViewModel = null;
 
 const map = new EsriMap({
   basemap: "gray-vector",
@@ -61,7 +68,7 @@ mapView.when(() => {
 
   // mapView.ui.add(sketch, "top-right");
 
-  const sketchViewModel = new SketchViewModel({
+  sketchViewModel = new SketchViewModel({
     view: mapView,
     layer: graphicsLayer,
   });
@@ -69,9 +76,21 @@ mapView.when(() => {
   const customSketch = new CustomSketch(graphicsLayer);
 
   sketchViewModel.on("update", function (evt) {
-    console.log("updating....");
+    //console.log("updating....");
     // console.log("event: ", evt);
     // selectedGraphics = evt.graphics;
+  });
+
+  sketchViewModel.watch("state", function (state) {
+    console.log("state: ", state);
+    if (state === "active") {
+      undoBtn.disabled = false;
+    }
+  });
+
+  sketchViewModel.on("undo", function (event) {
+    // enable the redo button
+    redoBtn.disabled = false;
   });
 
   sketchViewModel.on("create", function (evt) {
@@ -95,26 +114,26 @@ mapView.when(() => {
     // set the sketch to create a point geometry
     selectedBtn = this;
     sketchViewModel.create("point");
-    setActiveButton(this);
+    //setActiveButton(this);
     //pointType = "number";
   };
 
   drawPinBtn.onclick = function () {
     selectedBtn = this;
     sketchViewModel.create("point");
-    setActiveButton(this);
+    //setActiveButton(this);
   };
 
   drawPolylineBtn.onclick = function () {
     selectedBtn = this;
     sketchViewModel.create("polyline");
-    setActiveButton(this);
+    //setActiveButton(this);
   };
 
   drawPolygonBtn.onclick = function () {
     selectedBtn = this;
     sketchViewModel.create("polygon");
-    setActiveButton(this);
+    //setActiveButton(this);
   };
 
   // reset button
@@ -155,6 +174,18 @@ mapView.when(() => {
     }
   }
 });
+
+undoBtn.onclick = function () {
+  if (sketchViewModel.state !== "active") {
+    undoBtn.disabled = true;
+  } else {
+    sketchViewModel.undo();
+  }
+};
+
+redoBtn.onclick = function () {
+  sketchViewModel.redo();
+};
 
 // loading client side graphics from a graphics layer
 // feature layer also works here (clientLayer: GraphicsLayer || FeatureLayer)

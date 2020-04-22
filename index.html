@@ -36,7 +36,7 @@
   </head>
   <body>
     <div id="viewDiv"></div>
-    <div id="topbar">
+    <div id="topbar" style="border-radius: 15px; border: 2px solid #52bde9;">
       <button
         class="esri-sketch__button esri-icon-map-pin"
         id="pinBtn"
@@ -69,6 +69,18 @@
         type="button"
         title="Clear graphics"
         style="visibility: hidden;"
+      ></button>
+      <button
+        class="esri-sketch__button esri-icon-undo"
+        id="undoBtn"
+        type="button"
+        title="Undo"
+      ></button>
+      <button
+        class="esri-sketch__button esri-icon-redo"
+        id="redoBtn"
+        type="button"
+        title="Redo"
       ></button>
     </div>
     <script>

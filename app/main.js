@@ -13,11 +13,17 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
     var drawPolylineBtn = document.getElementById("polylineBtn");
     var drawPolygonBtn = document.getElementById("polygonBtn");
     var deleteBtn = document.getElementById("deleteBtn");
+    // HTMLInputElement allows us to use the disabled property
+    var undoBtn = document.getElementById("undoBtn");
+    undoBtn.disabled = true;
+    var redoBtn = document.getElementById("redoBtn");
+    redoBtn.disabled = true;
     var graphicsLayer = new GraphicsLayer_1.default();
     var numberIndex = 1;
     var selectedBtn;
     var selectedGraphic = null;
     var isGraphicClick = false;
+    var sketchViewModel = null;
     var map = new Map_1.default({
         basemap: "gray-vector",
         layers: [graphicsLayer],
@@ -41,15 +47,25 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
         //   availableCreateTools: ["rectangle", "circle"],
         // });
         // mapView.ui.add(sketch, "top-right");
-        var sketchViewModel = new SketchViewModel_1.default({
+        sketchViewModel = new SketchViewModel_1.default({
             view: mapView,
             layer: graphicsLayer,
         });
         var customSketch = new CustomSketch_1.CustomSketch(graphicsLayer);
         sketchViewModel.on("update", function (evt) {
-            console.log("updating....");
+            //console.log("updating....");
             // console.log("event: ", evt);
             // selectedGraphics = evt.graphics;
+        });
+        sketchViewModel.watch("state", function (state) {
+            console.log("state: ", state);
+            if (state === "active") {
+                undoBtn.disabled = false;
+            }
+        });
+        sketchViewModel.on("undo", function (event) {
+            // enable the redo button
+            redoBtn.disabled = false;
         });
         sketchViewModel.on("create", function (evt) {
             if (selectedBtn instanceof HTMLElement) {
@@ -70,23 +86,23 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
             // set the sketch to create a point geometry
             selectedBtn = this;
             sketchViewModel.create("point");
-            setActiveButton(this);
+            //setActiveButton(this);
             //pointType = "number";
         };
         drawPinBtn.onclick = function () {
             selectedBtn = this;
             sketchViewModel.create("point");
-            setActiveButton(this);
+            //setActiveButton(this);
         };
         drawPolylineBtn.onclick = function () {
             selectedBtn = this;
             sketchViewModel.create("polyline");
-            setActiveButton(this);
+            //setActiveButton(this);
         };
         drawPolygonBtn.onclick = function () {
             selectedBtn = this;
             sketchViewModel.create("polygon");
-            setActiveButton(this);
+            //setActiveButton(this);
         };
         // reset button
         deleteBtn.onclick = function () {
@@ -121,6 +137,17 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
             }
         }
     });
+    undoBtn.onclick = function () {
+        if (sketchViewModel.state !== "active") {
+            undoBtn.disabled = true;
+        }
+        else {
+            sketchViewModel.undo();
+        }
+    };
+    redoBtn.onclick = function () {
+        sketchViewModel.redo();
+    };
     // loading client side graphics from a graphics layer
     // feature layer also works here (clientLayer: GraphicsLayer || FeatureLayer)
     var loadClientLayer = function (view, clientLayer) {
