@@ -32,3 +32,13 @@
   background: #0079c1;
   color: #e4e4e4;
 }
+
+#arrow-button {
+  width: 30px;
+  height: 25px;
+}
+
+#arrow-button svg {
+  width: 25px;
+  height: 25px;
+}

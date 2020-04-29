@@ -27,6 +27,7 @@ const drawPinBtn = document.getElementById("pinBtn");
 const drawPolylineBtn = document.getElementById("polylineBtn");
 const drawPolygonBtn = document.getElementById("polygonBtn");
 const deleteBtn = document.getElementById("deleteBtn");
+const drawArrowBtn = document.getElementById("arrowBtn");
 // HTMLInputElement allows us to use the disabled property
 const undoBtn = <HTMLInputElement>document.getElementById("undoBtn");
 undoBtn.disabled = true;
@@ -38,8 +39,10 @@ let numberIndex = 1;
 let selectedBtn: HTMLElement | GlobalEventHandlers;
 let selectedGraphic: Graphic = null;
 let isGraphicClick = false;
+let isArrowDrawEnabled = false;
 
 let sketchViewModel: SketchViewModel = null;
+let customSketch: CustomSketch = null;
 
 const map = new EsriMap({
   basemap: "gray-vector",
@@ -73,7 +76,7 @@ mapView.when(() => {
     layer: graphicsLayer,
   });
 
-  const customSketch = new CustomSketch(graphicsLayer);
+  customSketch = new CustomSketch(graphicsLayer);
 
   sketchViewModel.on("update", function (evt) {
     //console.log("updating....");
@@ -82,7 +85,6 @@ mapView.when(() => {
   });
 
   sketchViewModel.watch("state", function (state) {
-    console.log("state: ", state);
     if (state === "active") {
       undoBtn.disabled = false;
     }
@@ -97,7 +99,6 @@ mapView.when(() => {
     if (selectedBtn instanceof HTMLElement) {
       customSketch.addGraphic(evt, selectedBtn.id, numberIndex);
       if (selectedBtn.id === CurrentSelectedBtn.CirclePointBtn) {
-        console.log("incrementing index...");
         numberIndex++;
 
         // setting the circle text button to the next number
@@ -136,6 +137,11 @@ mapView.when(() => {
     //setActiveButton(this);
   };
 
+  drawArrowBtn.onclick = function () {
+    selectedBtn = this;
+    isArrowDrawEnabled = true;
+  };
+
   // reset button
   deleteBtn.onclick = function () {
     // just want to remove the currently selected graphics
@@ -143,9 +149,9 @@ mapView.when(() => {
       // TODO: this code works if the ability to delete multiple
       // graphics is added
       graphicsLayer.removeMany([selectedGraphic]);
+      mapView.graphics.removeAll();
     }
     deleteBtn.style.visibility = "hidden";
-    console.log(selectedGraphic);
     if (selectedGraphic.symbol.type === "cim") {
       numberIndex = getCimNumber(selectedGraphic);
     }
@@ -201,6 +207,15 @@ const loadClientLayer = (view: MapView, clientLayer: GraphicsLayer): void => {
     .then((layerView) => {
       view.on("pointer-move", eventHandler);
       view.on("pointer-down", eventHandler);
+      // view.on("drag", function (e) {
+      //   console.log(e);
+      //   // e.stopPropagation();
+      // });
+      view.on("drag", function (e: any) {
+        if (isArrowDrawEnabled) {
+          dragEventHandler(e, view);
+        }
+      });
 
       function eventHandler(event: MouseEvent): void {
         // using the hitTest() of the MapView to identify graphics on the screen
@@ -235,5 +250,18 @@ const loadClientLayer = (view: MapView, clientLayer: GraphicsLayer): void => {
       }
     });
 };
+
+function dragEventHandler(e: any, view: MapView) {
+  e.stopPropagation();
+  if (e.origin.x !== e.x && e.origin.y !== e.y) {
+    const arrow = customSketch.drawArrow(e.origin, { x: e.x, y: e.y }, view);
+    view.graphics.removeAll();
+    view.graphics.addMany(arrow);
+    if (e.action === "end") {
+      graphicsLayer.addMany(arrow);
+      isArrowDrawEnabled = false;
+    }
+  }
+}
 
 loadClientLayer(mapView, graphicsLayer);

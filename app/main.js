@@ -13,6 +13,7 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
     var drawPolylineBtn = document.getElementById("polylineBtn");
     var drawPolygonBtn = document.getElementById("polygonBtn");
     var deleteBtn = document.getElementById("deleteBtn");
+    var drawArrowBtn = document.getElementById("arrowBtn");
     // HTMLInputElement allows us to use the disabled property
     var undoBtn = document.getElementById("undoBtn");
     undoBtn.disabled = true;
@@ -23,7 +24,9 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
     var selectedBtn;
     var selectedGraphic = null;
     var isGraphicClick = false;
+    var isArrowDrawEnabled = false;
     var sketchViewModel = null;
+    var customSketch = null;
     var map = new Map_1.default({
         basemap: "gray-vector",
         layers: [graphicsLayer],
@@ -51,14 +54,13 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
             view: mapView,
             layer: graphicsLayer,
         });
-        var customSketch = new CustomSketch_1.CustomSketch(graphicsLayer);
+        customSketch = new CustomSketch_1.CustomSketch(graphicsLayer);
         sketchViewModel.on("update", function (evt) {
             //console.log("updating....");
             // console.log("event: ", evt);
             // selectedGraphics = evt.graphics;
         });
         sketchViewModel.watch("state", function (state) {
-            console.log("state: ", state);
             if (state === "active") {
                 undoBtn.disabled = false;
             }
@@ -71,7 +73,6 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
             if (selectedBtn instanceof HTMLElement) {
                 customSketch.addGraphic(evt, selectedBtn.id, numberIndex);
                 if (selectedBtn.id === CustomSketch_1.CurrentSelectedBtn.CirclePointBtn) {
-                    console.log("incrementing index...");
                     numberIndex++;
                     // setting the circle text button to the next number
                     // helps user know what the next number is without having
@@ -104,6 +105,10 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
             sketchViewModel.create("polygon");
             //setActiveButton(this);
         };
+        drawArrowBtn.onclick = function () {
+            selectedBtn = this;
+            isArrowDrawEnabled = true;
+        };
         // reset button
         deleteBtn.onclick = function () {
             // just want to remove the currently selected graphics
@@ -111,9 +116,9 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
                 // TODO: this code works if the ability to delete multiple
                 // graphics is added
                 graphicsLayer.removeMany([selectedGraphic]);
+                mapView.graphics.removeAll();
             }
             deleteBtn.style.visibility = "hidden";
-            console.log(selectedGraphic);
             if (selectedGraphic.symbol.type === "cim") {
                 numberIndex = getCimNumber(selectedGraphic);
             }
@@ -162,6 +167,15 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
             .then(function (layerView) {
             view.on("pointer-move", eventHandler);
             view.on("pointer-down", eventHandler);
+            // view.on("drag", function (e) {
+            //   console.log(e);
+            //   // e.stopPropagation();
+            // });
+            view.on("drag", function (e) {
+                if (isArrowDrawEnabled) {
+                    dragEventHandler(e, view);
+                }
+            });
             function eventHandler(event) {
                 // using the hitTest() of the MapView to identify graphics on the screen
                 isGraphicClick = event.type === "pointer-down" ? true : false;
@@ -190,6 +204,18 @@ define(["require", "exports", "esri/Map", "esri/views/MapView", "esri/layers/Gra
             }
         });
     };
+    function dragEventHandler(e, view) {
+        e.stopPropagation();
+        if (e.origin.x !== e.x && e.origin.y !== e.y) {
+            var arrow = customSketch.drawArrow(e.origin, { x: e.x, y: e.y }, view);
+            view.graphics.removeAll();
+            view.graphics.addMany(arrow);
+            if (e.action === "end") {
+                graphicsLayer.addMany(arrow);
+                isArrowDrawEnabled = false;
+            }
+        }
+    }
     loadClientLayer(mapView, graphicsLayer);
 });
 //# sourceMappingURL=main.js.map

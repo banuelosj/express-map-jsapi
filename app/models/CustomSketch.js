@@ -1,11 +1,14 @@
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-define(["require", "exports", "esri/Graphic", "esri/symbols", "esri/symbols/SimpleMarkerSymbol"], function (require, exports, Graphic_1, symbols_1, SimpleMarkerSymbol_1) {
+define(["require", "exports", "esri/Graphic", "esri/symbols", "esri/symbols/SimpleMarkerSymbol", "esri/symbols/SimpleLineSymbol", "esri/symbols/PictureMarkerSymbol", "esri/geometry/Polyline"], function (require, exports, Graphic_1, symbols_1, SimpleMarkerSymbol_1, SimpleLineSymbol_1, PictureMarkerSymbol_1, Polyline_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     Graphic_1 = __importDefault(Graphic_1);
     SimpleMarkerSymbol_1 = __importDefault(SimpleMarkerSymbol_1);
+    SimpleLineSymbol_1 = __importDefault(SimpleLineSymbol_1);
+    PictureMarkerSymbol_1 = __importDefault(PictureMarkerSymbol_1);
+    Polyline_1 = __importDefault(Polyline_1);
     var CurrentSelectedBtn;
     (function (CurrentSelectedBtn) {
         CurrentSelectedBtn["CirclePointBtn"] = "pointButtonNumber";
@@ -51,6 +54,49 @@ define(["require", "exports", "esri/Graphic", "esri/symbols", "esri/symbols/Simp
             });
             this.graphicsLayer.add(pinGraphic);
             //model.create("point");
+        };
+        CustomSketch.prototype.drawArrow = function (startPoint, endPoint, view) {
+            var start = view.toMap(startPoint), end = view.toMap(endPoint);
+            var lineGraphic = new Graphic_1.default({
+                geometry: new Polyline_1.default({
+                    paths: [
+                        [
+                            [start.x, start.y],
+                            [end.x, end.y],
+                        ],
+                    ],
+                    spatialReference: { wkid: 102100 },
+                }),
+                symbol: new SimpleLineSymbol_1.default({
+                    color: "#0079C1",
+                    width: "3px",
+                    style: "solid",
+                }),
+                // attributes added for identifying the arrow graphics
+                // for easy deletion
+                attributes: {
+                    type: "arrow-line",
+                },
+            });
+            var dx = end.x - start.x, dy = end.y - start.y, rads = Math.atan2(dy, dx);
+            if (rads < 0) {
+                rads = Math.abs(rads);
+            }
+            else {
+                rads = 2 * Math.PI - rads;
+            }
+            var degrees = (rads * 180) / Math.PI + 180;
+            var arrowHeadGraphic = new Graphic_1.default({
+                symbol: new PictureMarkerSymbol_1.default({
+                    url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2ZXJzaW9uPSIxLjEiIGlkPSJDYXBhXzEiIHg9IjBweCIgeT0iMHB4IiB3aWR0aD0iNTcxLjgxNXB4IiBoZWlnaHQ9IjU3MS44MTVweCIgdmlld0JveD0iMCAwIDU3MS44MTUgNTcxLjgxNSIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgNTcxLjgxNSA1NzEuODE1OyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxnPgoJPGc+CgkJPHBhdGggZD0iTTExNy41MTgsMjk2LjA0MmwzMzMuMTYxLDI3Mi4xMzJjOC4yODYsNi42NDYsMTIuMDYyLDMuOTQxLDguNDMtNi4wNGwtODguNDQyLTI2MC4wNDkgICAgYy0zLjYzLTkuOTgxLTMuNTk2LTI2LjE1NiwwLjA3Ni0zNi4xMjNsODguMjktMjU2LjI2YzMuNjcyLTkuOTY2LTAuMTAxLTEyLjcwMi04LjQzMS02LjExTDExNy41OTQsMjcyLjA3ICAgIEMxMDkuMjY1LDI3OC42NjEsMTA5LjIzMSwyODkuMzk1LDExNy41MTgsMjk2LjA0MnoiLz4KCTwvZz4KPC9nPgo8L3N2Zz4=",
+                    angle: degrees,
+                }),
+                geometry: end,
+                attributes: {
+                    type: "arrow-head",
+                },
+            });
+            return [lineGraphic, arrowHeadGraphic];
         };
         CustomSketch.prototype.getPointSymbolData = function (index) {
             return {
